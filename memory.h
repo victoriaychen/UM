@@ -18,8 +18,14 @@
 #define MEM_H
 
 #include <stdint.h>
+#include "uarray.h"
+#include "seq.h"
 
-typedef struct Mem_T *Mem_T;
+typedef struct Mem_T {
+    Seq_T main_memory;
+    Seq_T deleted_addresses;
+} *Mem_T;
+
 typedef int Mem_Address;
 
 extern Mem_T Mem_new(); 
@@ -31,6 +37,8 @@ extern void Mem_update_word(Mem_T mem, Mem_Address address, int index,
 extern uint32_t Mem_get_word(Mem_T mem, Mem_Address address, int index); 
 extern int Mem_duplicate_segment(Mem_T mem, Mem_Address address_to_dup,
                                  Mem_Address address_to_replace); 
+extern UArray_T Mem_get_segment(Mem_T mem, Mem_Address address);
+extern uint32_t Mem_get_word_from_seg(UArray_T segment, int index); 
 
 #endif
 

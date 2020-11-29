@@ -20,7 +20,7 @@ EXECS   = um
 
 all: $(EXECS)
 
-um: instruction_executor.o unpacker.o memory.o
+um: instruction_executor.o memory.o
 	$(COMPILE)
 
 # To get *any* .o file, compile its .c file with the following rule.

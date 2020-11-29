@@ -23,10 +23,10 @@
 #define SIZE_OF_UINT32 4
 
 /* Memory struct, details hidden from client */
-struct Mem_T {
-    Seq_T main_memory;
-    Seq_T deleted_addresses;
-};
+// struct Mem_T {
+//     Seq_T main_memory;
+//     Seq_T deleted_addresses;
+// };
 
 /* Mem_new
  * Purpose:    Dynamically allocates space for a new Mem_T struct instance and
@@ -87,7 +87,7 @@ void Mem_free_memory(Mem_T *mem_p)
  */
 Mem_Address Mem_create_segment(Mem_T mem, int length)
 {
-    assert(mem != NULL);
+    // assert(mem != NULL);
     /* Use a macro instead of sizeof(uint32_t) for efficiency */
     UArray_T segment = UArray_new(length, SIZE_OF_UINT32);
     Mem_Address address;
@@ -117,7 +117,7 @@ Mem_Address Mem_create_segment(Mem_T mem, int length)
 void Mem_remove_segment(Mem_T mem, Mem_Address address)
 {
     Seq_T main_memory = mem->main_memory;
-    assert(mem != NULL);
+    // assert(mem != NULL);
     UArray_T segment = Seq_get(main_memory, address);
     UArray_free(&segment);
     Seq_put(main_memory, address, NULL); 
@@ -137,7 +137,7 @@ void Mem_remove_segment(Mem_T mem, Mem_Address address)
  */
 void Mem_update_word(Mem_T mem, Mem_Address address, int index, uint32_t value)
 {
-    assert(mem != NULL);
+    // assert(mem != NULL);
     UArray_T segment = Seq_get(mem->main_memory, address);
     *((uint32_t *)UArray_at(segment, index)) = value;
 }
@@ -152,7 +152,7 @@ void Mem_update_word(Mem_T mem, Mem_Address address, int index, uint32_t value)
  */
 uint32_t Mem_get_word(Mem_T mem, Mem_Address address, int index)
 {
-    assert(mem != NULL);
+    // assert(mem != NULL);
     UArray_T segment = Seq_get(mem->main_memory, address);
     return *((uint32_t *)UArray_at(segment, index));
 } 
@@ -171,11 +171,11 @@ uint32_t Mem_get_word(Mem_T mem, Mem_Address address, int index)
 int Mem_duplicate_segment(Mem_T mem, Mem_Address address_to_dup,
                           Mem_Address address_to_replace)
 {
-    assert(mem != NULL);
+    // assert(mem != NULL);
     UArray_T segment_to_dup = Seq_get(mem->main_memory, address_to_dup); 
     int segment_to_dup_len = UArray_length(segment_to_dup);
     Mem_remove_segment(mem, address_to_replace);
-    Mem_create_segment(mem, UArray_length(segment_to_dup));
+    Mem_create_segment(mem, segment_to_dup_len);
     
     /* Populate new segment with 32-bit words from the duplicated segment */
     for (int i = 0; i < segment_to_dup_len; i++) {
@@ -183,4 +183,14 @@ int Mem_duplicate_segment(Mem_T mem, Mem_Address address_to_dup,
                         Mem_get_word(mem, address_to_dup, i));
     }
     return segment_to_dup_len;
+} 
+
+UArray_T Mem_get_segment(Mem_T mem, Mem_Address address) {
+   return Seq_get(mem->main_memory, address); 
+}
+
+uint32_t Mem_get_word_from_seg(UArray_T segment, int index)
+{
+    // assert(mem != NULL);
+    return *((uint32_t *)UArray_at(segment, index));
 } 

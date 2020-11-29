@@ -24,11 +24,27 @@
 #include "assert.h"
 #include "bitpack.h"
 #include "memory.h"
-#include "unpacker.h"
+//#include "unpacker.h"
 
 /* Named constants for instruction execution */
 #define PROG_ADDRESS 0
 #define NUM_REGISTERS 8
+
+/* Named constants for bitpacking */
+#define OPCODE_WIDTH 4
+#define OPCODE_LSB 28
+
+#define RA_WIDTH 3
+#define RA_LSB 6
+#define RB_WIDTH 3
+#define RB_LSB 3
+#define RC_WIDTH 3
+#define RC_LSB 0
+
+#define RA_13_WIDTH 3
+#define RA_13_LSB 25
+#define VALUE_WIDTH 25
+#define VALUE_LSB 0
 
 /* Enumeration for each opcode value */
 typedef enum Um_opcode {
@@ -102,10 +118,12 @@ static void get_input(uint32_t *rC_p) {
  * Returns:    none
  */
 static void load_program(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val,
-                         uint32_t *program_pointer, uint32_t *seg_0_len)
+                         uint32_t *program_pointer, uint32_t *seg_0_len,
+                         UArray_T *seg_0_ptr)
 {
     if (*rB_p != PROG_ADDRESS) {
-        *seg_0_len = Mem_duplicate_segment(main_mem, *rB_p, PROG_ADDRESS); 
+        *seg_0_len = Mem_duplicate_segment(main_mem, *rB_p, PROG_ADDRESS);
+        *seg_0_ptr = Mem_get_segment(main_mem, PROG_ADDRESS);
     }
     *program_pointer = rC_val;
 }
@@ -128,17 +146,23 @@ static void load_program(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val,
  */
 static void execute_cases(Mem_T main_mem, int opcode, uint32_t *rA_p,
                           uint32_t *rB_p, uint32_t *rC_p,
-                          uint32_t *program_pointer, uint32_t *seg_0_len)
+                          uint32_t *program_pointer, uint32_t *seg_0_len,
+                          UArray_T *seg_0_ptr)
 {
+    UArray_T segment;
     switch (opcode) {
         case CMOV:
             conditional_move(rA_p, *rB_p, *rC_p);
             break;
         case SLOAD:
-            *rA_p = Mem_get_word(main_mem, *rB_p, *rC_p);
+            //*rA_p = Mem_get_word(main_mem, *rB_p, *rC_p);
+            segment = Seq_get(main_mem->main_memory, *rB_p);
+            *rA_p = *((uint32_t *)UArray_at(segment, *rC_p));
             break;
         case SSTORE:
-            Mem_update_word(main_mem, *rA_p, *rB_p, *rC_p);
+            //Mem_update_word(main_mem, *rA_p, *rB_p, *rC_p);
+            segment = Seq_get(main_mem->main_memory, *rA_p);
+            *((uint32_t *)UArray_at(segment, *rB_p)) = *rC_p;
             break;
         case ADD:
             *rA_p = *rB_p + *rC_p;
@@ -169,7 +193,7 @@ static void execute_cases(Mem_T main_mem, int opcode, uint32_t *rA_p,
             get_input(rC_p);
             break;
         case LOADP:
-            load_program(main_mem, rB_p, *rC_p, program_pointer, seg_0_len);
+            load_program(main_mem, rB_p, *rC_p, program_pointer, seg_0_len, seg_0_ptr);
             break;
     }
 }
@@ -197,23 +221,40 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
     uint32_t program_pointer = 0;
     uint32_t curr_instruction;
     int curr_opcode;
+    UArray_T seg_0_ptr = Mem_get_segment(main_mem, PROG_ADDRESS);
 
     /* Interating through segment 0 */
     while (program_pointer < seg_0_len) {
-        curr_instruction = Mem_get_word(main_mem, PROG_ADDRESS,
-                                        program_pointer);
-        curr_opcode = Unpacker_get_opcode(curr_instruction);
+        // curr_instruction = Mem_get_word(main_mem, PROG_ADDRESS,
+        //                                 program_pointer);
+        // curr_instruction = Mem_get_word_from_seg(seg_0_ptr, program_pointer);
+        curr_instruction = *((uint32_t *)UArray_at(seg_0_ptr, program_pointer));
+        // curr_opcode = Unpacker_get_opcode(curr_instruction);
+        // curr_opcode = Bitpack_getu(curr_instruction, OPCODE_WIDTH, OPCODE_LSB);
+        curr_opcode = curr_instruction >> 28;
         /* Update the program pointer before executing the instruction */
         program_pointer++;
         /* Special case for the load-value instruction */
         if (curr_opcode == LV) {
-            Operation_13 op_13 = Unpacker_unpack_13(curr_instruction);
-            registers[op_13.rA] = op_13.value;
+            // Operation_13 op_13 = Unpacker_unpack_13(curr_instruction);
+            // int rA = Bitpack_getu(curr_instruction, RA_13_WIDTH, RA_13_LSB);
+            int rA = (curr_instruction & 0xe000000) >> 25;
+            // printf("rA: %d\n", rA);
+            // int value = Bitpack_getu(curr_instruction, VALUE_WIDTH, VALUE_LSB);
+            int value = (curr_instruction & 0x1ffffff);
+            // printf("value: %d\n", value);
+            registers[rA] = value;
         } else {
-            Operation op = Unpacker_unpack(curr_instruction);
-            execute_cases(main_mem, curr_opcode, registers + op.rA,
-                          registers + op.rB, registers + op.rC,
-                          &program_pointer, &seg_0_len);
+            //Operation op = Unpacker_unpack(curr_instruction);
+            // int rA = Bitpack_getu(curr_instruction, RA_WIDTH, RA_LSB);
+            int rA = (curr_instruction & 448) >> 6;
+            // int rB = Bitpack_getu(curr_instruction, RB_WIDTH, RB_LSB);
+            int rB = (curr_instruction & 56) >> 3;
+            // int rC = Bitpack_getu(curr_instruction, RC_WIDTH, RC_LSB);
+            int rC = curr_instruction & 7;
+            execute_cases(main_mem, curr_opcode, registers + rA,
+                          registers + rB, registers + rC,
+                          &program_pointer, &seg_0_len, &seg_0_ptr);
         }
     }
 
