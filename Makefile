@@ -10,10 +10,10 @@
 CC = gcc
 
 IFLAGS  = -I/comp/40/build/include -I/usr/sup/cii40/include/cii
-CFLAGS  = -g -std=gnu99 -Wall -Wextra -Werror -Wfatal-errors -pedantic \
+CFLAGS  = -g -O2 -std=gnu99 -Wall -Wextra -Werror -Wfatal-errors -pedantic \
 		  $(IFLAGS)
 LDFLAGS = -g -L/comp/40/build/lib -L/usr/sup/cii40/lib64
-LDLIBS  = -lbitpack -lm -lcii40 -l40locality
+LDLIBS  = -lcii40-O2 -lbitpack -lm -lcii40 -l40locality
 COMPILE = $(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 INCLUDES = $(shell echo *.h)
 EXECS   = um
