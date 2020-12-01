@@ -52,6 +52,12 @@ typedef enum Um_opcode {
     NAND, HALT, ACTIVATE, INACTIVATE, OUT, IN, LOADP, LV
 } Um_opcode;
 
+#define MEM_UPDATE_WORD(main_mem, address, index, value) \
+do { \
+    UArray_T segment = Seq_get(main_mem->main_memory, address); \
+    *((uint32_t *)UArray_at(segment, index)) = value; \
+} while (0)
+
 /* conditional_move
  * Purpose:    Perform the conditional move operation. The value in register C
  *             determines if the other registers get updated. 
@@ -81,8 +87,10 @@ static void map_segment(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val)
     Mem_Address address = Mem_create_segment(main_mem, rC_val);
     
     /* Initializes each value in the segment to be 0 */
+    UArray_T segment = Seq_get(main_mem->main_memory, address); 
     for (unsigned i = 0; i < rC_val; i++) {
-        Mem_update_word(main_mem, address, i, 0);
+        // Mem_update_word(main_mem, address, i, 0);
+        *((uint32_t *)UArray_at(segment, i)) = 0;
     }
     *rB_p = address;
 }
@@ -144,59 +152,61 @@ static void load_program(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val,
  *             uint32_t *seg_0_len - a pointer to the length of segment 0
  * Returns:    none
  */
-static void execute_cases(Mem_T main_mem, int opcode, uint32_t *rA_p,
-                          uint32_t *rB_p, uint32_t *rC_p,
-                          uint32_t *program_pointer, uint32_t *seg_0_len,
-                          UArray_T *seg_0_ptr)
-{
-    UArray_T segment;
-    switch (opcode) {
-        case CMOV:
-            conditional_move(rA_p, *rB_p, *rC_p);
-            break;
-        case SLOAD:
-            //*rA_p = Mem_get_word(main_mem, *rB_p, *rC_p);
-            segment = Seq_get(main_mem->main_memory, *rB_p);
-            *rA_p = *((uint32_t *)UArray_at(segment, *rC_p));
-            break;
-        case SSTORE:
-            //Mem_update_word(main_mem, *rA_p, *rB_p, *rC_p);
-            segment = Seq_get(main_mem->main_memory, *rA_p);
-            *((uint32_t *)UArray_at(segment, *rB_p)) = *rC_p;
-            break;
-        case ADD:
-            *rA_p = *rB_p + *rC_p;
-            break;
-        case MUL:
-            *rA_p = *rB_p * *rC_p;
-            break;
-        case DIV:
-            *rA_p = *rB_p / *rC_p;
-            break;
-        case NAND:
-            *rA_p = ~(*rB_p & *rC_p);
-            break;
-        case HALT:
-            Mem_free_memory(&main_mem); 
-            exit(EXIT_SUCCESS); 
-            break;
-        case ACTIVATE:
-            map_segment(main_mem, rB_p, *rC_p); 
-            break;
-        case INACTIVATE:
-            Mem_remove_segment(main_mem, *rC_p);
-            break;
-        case OUT:
-            putchar(*rC_p);
-            break;
-        case IN:
-            get_input(rC_p);
-            break;
-        case LOADP:
-            load_program(main_mem, rB_p, *rC_p, program_pointer, seg_0_len, seg_0_ptr);
-            break;
-    }
-}
+// static void execute_cases(Mem_T main_mem, int opcode, uint32_t *rA_p,
+//                           uint32_t *rB_p, uint32_t *rC_p,
+//                           uint32_t *program_pointer, uint32_t *seg_0_len,
+//                           UArray_T *seg_0_ptr)
+// {
+//     UArray_T segment;
+//     switch (opcode) {
+//         case CMOV:
+//             conditional_move(rA_p, *rB_p, *rC_p);
+//             break;
+//         case SLOAD:
+//             //*rA_p = Mem_get_word(main_mem, *rB_p, *rC_p);
+//             segment = Seq_get(main_mem->main_memory, *rB_p);
+//             *rA_p = *((uint32_t *)UArray_at(segment, *rC_p));
+//             break;
+//         case SSTORE:
+//             //Mem_update_word(main_mem, *rA_p, *rB_p, *rC_p);
+//             segment = Seq_get(main_mem->main_memory, *rA_p);
+//             *((uint32_t *)UArray_at(segment, *rB_p)) = *rC_p;
+//             // MEM_UPDATE_WORD(main_mem, *rA_p, *rB_p, *rC_p);
+//             break;
+//         case ADD:
+//             *rA_p = *rB_p + *rC_p;
+//             break;
+//         case MUL:
+//             *rA_p = *rB_p * *rC_p;
+//             break;
+//         case DIV:
+//             *rA_p = *rB_p / *rC_p;
+//             break;
+//         case NAND:
+//             *rA_p = ~(*rB_p & *rC_p);
+//             break;
+//         case HALT:
+//             Mem_free_memory(&main_mem); 
+//             exit(EXIT_SUCCESS); 
+//             break;
+//         case ACTIVATE:
+//             map_segment(main_mem, rB_p, *rC_p); 
+//             // *rB_p = Mem_create_segment(main_mem, *rC_p);
+//             break;
+//         case INACTIVATE:
+//             Mem_remove_segment(main_mem, *rC_p);
+//             break;
+//         case OUT:
+//             putchar(*rC_p);
+//             break;
+//         case IN:
+//             get_input(rC_p);
+//             break;
+//         case LOADP:
+//             load_program(main_mem, rB_p, *rC_p, program_pointer, seg_0_len, seg_0_ptr);
+//             break;
+//     }
+// }
 
 /* execute_instructions
  * Purpose:    Executes instructions loaded into the first segment of main
@@ -252,9 +262,63 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
             int rB = (curr_instruction & 56) >> 3;
             // int rC = Bitpack_getu(curr_instruction, RC_WIDTH, RC_LSB);
             int rC = curr_instruction & 7;
-            execute_cases(main_mem, curr_opcode, registers + rA,
-                          registers + rB, registers + rC,
-                          &program_pointer, &seg_0_len, &seg_0_ptr);
+            // execute_cases(main_mem, curr_opcode, registers + rA,
+            //               registers + rB, registers + rC,
+            //               &program_pointer, &seg_0_len, &seg_0_ptr);
+            uint32_t *rA_p = registers + rA;
+            uint32_t *rB_p = registers + rB;
+            uint32_t rB_val = registers[rB];
+            uint32_t rC_val = registers[rC];
+
+            UArray_T segment;
+            switch (curr_opcode) {
+                case CMOV:
+                    conditional_move(rA_p, rB_val, rC_val);
+                    break;
+                case SLOAD:
+                    //*rA_p = Mem_get_word(main_mem, *rB_p, *rC_p);
+                    segment = Seq_get(main_mem->main_memory, rB_val);
+                    *rA_p = *((uint32_t *)UArray_at(segment, rC_val));
+                    break;
+                case SSTORE:
+                    //Mem_update_word(main_mem, *rA_p, *rB_p, *rC_p);
+                    segment = Seq_get(main_mem->main_memory, registers[rA]);
+                    *((uint32_t *)UArray_at(segment, rB_val)) = rC_val;
+                    // MEM_UPDATE_WORD(main_mem, *rA_p, *rB_p, *rC_p);
+                    break;
+                case ADD:
+                    *rA_p = rB_val + rC_val;
+                    break;
+                case MUL:
+                    *rA_p = rB_val * rC_val;
+                    break;
+                case DIV:
+                    *rA_p = rB_val / rC_val;
+                    break;
+                case NAND:
+                    *rA_p = ~(rB_val & rC_val);
+                    break;
+                case HALT:
+                    Mem_free_memory(&main_mem); 
+                    exit(EXIT_SUCCESS); 
+                    break;
+                case ACTIVATE:
+                    map_segment(main_mem, rB_p, rC_val); 
+                    // *rB_p = Mem_create_segment(main_mem, *rC_p);
+                    break;
+                case INACTIVATE:
+                    Mem_remove_segment(main_mem, rC_val);
+                    break;
+                case OUT:
+                    putchar(rC_val);
+                    break;
+                case IN:
+                    get_input(registers + rC_val);
+                    break;
+                case LOADP:
+                    load_program(main_mem, rB_p, rC_val, &program_pointer, &seg_0_len, &seg_0_ptr);
+                    break;
+            }
         }
     }
 
@@ -284,6 +348,7 @@ static void read_instructions(Mem_T main_mem, char *filename, int num_words)
     }
     uint32_t curr_word = 0;
     int curr_byte;
+    UArray_T segment_0 = Seq_get(main_mem->main_memory, PROG_ADDRESS);
 
     /* Read through the file 4 bytes at a time */
     for (int i = 0; i < num_words; i++) {
@@ -299,7 +364,10 @@ static void read_instructions(Mem_T main_mem, char *filename, int num_words)
             curr_word = Bitpack_newu(curr_word, 8, 8 * j, curr_byte);
         }
         /* Store each 32 bit word instruction in segment 0 */
-        Mem_update_word(main_mem, PROG_ADDRESS, i, curr_word);
+        // Mem_update_word(main_mem, PROG_ADDRESS, i, curr_word);
+        // MEM_UPDATE_WORD(main_mem, PROG_ADDRESS, i, curr_word);
+        //segment = Seq_get(main_mem->main_memory, *rA_p);
+        *((uint32_t *)UArray_at(segment_0, i)) = curr_word;
     }
     fclose(fp);
 }

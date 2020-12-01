@@ -22,6 +22,8 @@
 
 #define SIZE_OF_UINT32 4
 
+static void Mem_delete_segment(Mem_T mem, Mem_Address address);
+
 /* Memory struct, details hidden from client */
 // struct Mem_T {
 //     Seq_T main_memory;
@@ -67,7 +69,7 @@ void Mem_free_memory(Mem_T *mem_p)
     int main_mem_len = Seq_length(mem->main_memory);
     for (int i = 0; i < main_mem_len; i++) {
         if (Seq_get(mem->main_memory, i) != NULL) {
-            Mem_remove_segment(mem, i);
+            Mem_delete_segment(mem, i);
         }
     }
 
@@ -89,23 +91,30 @@ Mem_Address Mem_create_segment(Mem_T mem, int length)
 {
     // assert(mem != NULL);
     /* Use a macro instead of sizeof(uint32_t) for efficiency */
-    UArray_T segment = UArray_new(length, SIZE_OF_UINT32);
     Mem_Address address;
     Seq_T deleted_addresses = mem->deleted_addresses;
     Seq_T main_memory = mem->main_memory;
     /* In this case, add a new segment (which will expand the sequence) */
     if (Seq_length(deleted_addresses) == 0) {
+        UArray_T segment = UArray_new(length, SIZE_OF_UINT32);
         address = Seq_length(main_memory);
         Seq_addhi(main_memory, segment);
     } else {
         /* In this case, use the top element of the stack as the address */
-        address = (uintptr_t)Seq_remhi(deleted_addresses); 
-        Seq_put(main_memory, address, segment);
+        address = (uintptr_t)Seq_remhi(deleted_addresses);
+        UArray_T segment = Seq_get(main_memory, address); 
+        int curr_seg_length = UArray_length(segment);
+        if (curr_seg_length < length) {
+            // for (int i = 0; i < curr_seg_length; i++) {
+            //     *((uint32_t *)UArray_at(segment, i)) = 0;
+            // }
+            UArray_resize(segment, length);
+        }
     }
     return address;
 }
 
-/* Mem_remove_segment
+/* Mem_delete_segment
  * Purpose:    Remove a segment corresponding with a specified index 
  *             and stores its address in a Hanson sequence representing 
  *             the deleted addresses. 
@@ -114,7 +123,7 @@ Mem_Address Mem_create_segment(Mem_T mem, int length)
  *                                   existing segment
  * Returns: none
  */
-void Mem_remove_segment(Mem_T mem, Mem_Address address)
+static void Mem_delete_segment(Mem_T mem, Mem_Address address)
 {
     Seq_T main_memory = mem->main_memory;
     // assert(mem != NULL);
@@ -122,6 +131,11 @@ void Mem_remove_segment(Mem_T mem, Mem_Address address)
     UArray_free(&segment);
     Seq_put(main_memory, address, NULL); 
     /* Add the removed index to deleted addresses */
+    Seq_addhi(mem->deleted_addresses, (void *)(uintptr_t)address); 
+}
+
+void Mem_remove_segment(Mem_T mem, Mem_Address address)
+{
     Seq_addhi(mem->deleted_addresses, (void *)(uintptr_t)address); 
 }
 
