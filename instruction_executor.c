@@ -56,10 +56,10 @@ typedef enum Um_opcode {
     NAND, HALT, ACTIVATE, INACTIVATE, OUT, IN, LOADP, LV
 } Um_opcode;
 
-typedef struct Mem_T {
-    Seq_T main_memory;
-    Seq_T deleted_addresses;
-} *Mem_T;
+// typedef struct Mem_T {
+//     Seq_T main_memory;
+//     Seq_T deleted_addresses;
+// } *Mem_T;
 
 typedef int Mem_Address;
 
@@ -134,17 +134,17 @@ static void SArray_free(SArray_T *sarr)
  * Returns:    Mem_T - a pointer to the newly allocated Mem_T struct
  * Notes:      Leaves memory on the heap after this function terminates.
  */
-static Mem_T Mem_new()
-{
-    Mem_T mem = malloc(sizeof(*mem));
-    /* Ensure that malloc was successful */
-    assert(mem != NULL);
+// static Mem_T Mem_new()
+// {
+//     Mem_T mem = malloc(sizeof(*mem));
+//     /* Ensure that malloc was successful */
+//     assert(mem != NULL);
 
-    /* Instantiate each struct element */
-    mem->main_memory = Seq_new(0);
-    mem->deleted_addresses = Seq_new(0);
-    return mem; 
-}
+//     /* Instantiate each struct element */
+//     mem->main_memory = Seq_new(0);
+//     mem->deleted_addresses = Seq_new(0);
+//     return mem; 
+// }
 
 /* Mem_free_memory
  * Purpose:    Deallocates all heap allocated memory associated with a Mem_T
@@ -154,16 +154,16 @@ static Mem_T Mem_new()
  *                            is not null, *mem_p cannot be null.
  * Returns:    none
  */
-static void Mem_free_memory(Mem_T *mem_p)
+static void Mem_free_memory(Seq_T main_memory, Seq_T deleted_addresses)
 {
-    if (mem_p == NULL) {
-        return;
-    }
-    Mem_T mem = *mem_p;
-    assert(mem != NULL);
+    // if (mem_p == NULL) {
+    //     return;
+    // }
+    // Mem_T mem = *mem_p;
+    // assert(mem != NULL);
 
-    Seq_T main_memory = mem->main_memory;
-    Seq_T deleted_addresses = mem->deleted_addresses;
+    // Seq_T main_memory = mem->main_memory;
+    // Seq_T deleted_addresses = mem->deleted_addresses;
     /* Iterate over main memory and delete all existing segments */
     int main_mem_len = Seq_length(main_memory);
     for (int i = 0; i < main_mem_len; i++) {
@@ -175,9 +175,9 @@ static void Mem_free_memory(Mem_T *mem_p)
     }
 
     /* Free remaining struct memory before freeing the struct itself */
-    Seq_free(&deleted_addresses);
     Seq_free(&main_memory);
-    free(mem);
+    Seq_free(&deleted_addresses);
+    // free(mem);
 }
 
 /* Mem_create_segment
@@ -188,13 +188,14 @@ static void Mem_free_memory(Mem_T *mem_p)
  *             int length - length of the segment
  * Returns:    Mem_Address - the address of the newly instantiated segment
  */
-static Mem_Address Mem_create_segment(Mem_T mem, int length)
+static Mem_Address Mem_create_segment(Seq_T main_memory,
+                                      Seq_T deleted_addresses, int length)
 {
     // assert(mem != NULL);
     /* Use a macro instead of sizeof(uint32_t) for efficiency */
     Mem_Address address;
-    Seq_T deleted_addresses = mem->deleted_addresses;
-    Seq_T main_memory = mem->main_memory;
+    // Seq_T deleted_addresses = mem->deleted_addresses;
+    // Seq_T main_memory = mem->main_memory;
     /* In this case, add a new segment (which will expand the sequence) */
     if (Seq_length(deleted_addresses) == 0) {
         SArray_T segment = SArray_new(length);
@@ -235,9 +236,9 @@ static Mem_Address Mem_create_segment(Mem_T mem, int length)
 //     // Seq_addhi(mem->deleted_addresses, (void *)(uintptr_t)address);
 // }
 
-static void Mem_remove_segment(Mem_T mem, Mem_Address address)
+static void Mem_remove_segment(Seq_T deleted_addresses, Mem_Address address)
 {
-    Seq_addhi(mem->deleted_addresses, (void *)(uintptr_t)address); 
+    Seq_addhi(deleted_addresses, (void *)(uintptr_t)address); 
 }
 
 /* Mem_update_word
@@ -250,10 +251,11 @@ static void Mem_remove_segment(Mem_T mem, Mem_Address address)
  *             uint32_t value - 32-bit updated value of the specified word
  * Returns:    none
  */
-static void Mem_update_word(Mem_T mem, Mem_Address address, int index, uint32_t value)
+static void Mem_update_word(Seq_T main_memory, Mem_Address address, 
+                                        int index, uint32_t value)
 {
     // assert(mem != NULL);
-    SArray_T segment = Seq_get(mem->main_memory, address);
+    SArray_T segment = Seq_get(main_memory, address);
     *SArray_at(segment, index) = value;
 }
 
@@ -265,10 +267,10 @@ static void Mem_update_word(Mem_T mem, Mem_Address address, int index, uint32_t 
  *                                   existing segment
  * Returns:    uint32_t - the 32-bit word at the specified address/index
  */
-static uint32_t Mem_get_word(Mem_T mem, Mem_Address address, int index)
+static uint32_t Mem_get_word(Seq_T main_memory, Mem_Address address, int index)
 {
     // assert(mem != NULL);
-    SArray_T segment = Seq_get(mem->main_memory, address);
+    SArray_T segment = Seq_get(main_memory, address);
     return SArray_get(segment, index);
 } 
 
@@ -283,25 +285,25 @@ static uint32_t Mem_get_word(Mem_T mem, Mem_Address address, int index)
  *                                              replace
  * Returns:    int - the length of the newly duplicated segment
  */
-static int Mem_duplicate_segment(Mem_T mem, Mem_Address address_to_dup,
+static int Mem_duplicate_segment(Seq_T main_memory, Seq_T deleted_addresses, Mem_Address address_to_dup,
                           Mem_Address address_to_replace)
 {
     // assert(mem != NULL);
-    SArray_T segment_to_dup = Seq_get(mem->main_memory, address_to_dup); 
+    SArray_T segment_to_dup = Seq_get(main_memory, address_to_dup); 
     int segment_to_dup_len = segment_to_dup->length;
-    Mem_remove_segment(mem, address_to_replace);
-    Mem_create_segment(mem, segment_to_dup_len);
+    Mem_remove_segment(deleted_addresses, address_to_replace);
+    Mem_create_segment(main_memory, deleted_addresses, segment_to_dup_len);
     
     /* Populate new segment with 32-bit words from the duplicated segment */
     for (int i = 0; i < segment_to_dup_len; i++) {
-        Mem_update_word(mem, address_to_replace, i,
-                        Mem_get_word(mem, address_to_dup, i));
+        Mem_update_word(main_memory, address_to_replace, i,
+                        Mem_get_word(main_memory, address_to_dup, i));
     }
     return segment_to_dup_len;
 } 
 
-static SArray_T Mem_get_segment(Mem_T mem, Mem_Address address) {
-   return Seq_get(mem->main_memory, address); 
+static SArray_T Mem_get_segment(Seq_T main_memory, Mem_Address address) {
+   return Seq_get(main_memory, address); 
 }
 
 // static uint32_t Mem_get_word_from_seg(SArray_T segment, int index)
@@ -336,12 +338,13 @@ static inline void conditional_move(uint32_t *rA_p, uint32_t rB_val,
  *             uint32_t rC_val - the value stored in register C
  * Returns:    none
  */
-static void map_segment(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val)
+static void map_segment(Seq_T main_memory, Seq_T deleted_addresses, 
+                                   uint32_t *rB_p, uint32_t rC_val)
 {
-    Mem_Address address = Mem_create_segment(main_mem, rC_val);
+    Mem_Address address = Mem_create_segment(main_memory, deleted_addresses, rC_val);
     
     /* Initializes each value in the segment to be 0 */
-    SArray_T segment = Seq_get(main_mem->main_memory, address); 
+    SArray_T segment = Seq_get(main_memory, address); 
     for (unsigned i = 0; i < rC_val; i++) {
         // Mem_update_word(main_mem, address, i, 0);
         *SArray_at(segment, i) = 0;
@@ -379,13 +382,14 @@ static void get_input(uint32_t *rC_p) {
  *             uint32_t *seg_0_len - a pointer to the length of segment 0
  * Returns:    none
  */
-static void load_program(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val,
+static void load_program(Seq_T main_memory, Seq_T deleted_addresses, uint32_t *rB_p, uint32_t rC_val,
                          uint32_t *program_pointer, uint32_t *seg_0_len,
                          SArray_T *seg_0_ptr)
 {
     if (*rB_p != PROG_ADDRESS) {
-        *seg_0_len = Mem_duplicate_segment(main_mem, *rB_p, PROG_ADDRESS);
-        *seg_0_ptr = Mem_get_segment(main_mem, PROG_ADDRESS);
+        *seg_0_len = Mem_duplicate_segment(main_memory, deleted_addresses, 
+                                                     *rB_p, PROG_ADDRESS);
+        *seg_0_ptr = Mem_get_segment(main_memory, PROG_ADDRESS);
         // *curr_segment = *seg_0_ptr;
         // *curr_segment_address = PROG_ADDRESS;
     }
@@ -474,9 +478,10 @@ static void load_program(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val,
  *                                  segment 0 of main memory
  * Returns:    none
  */
-static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
+static void execute_instructions(Seq_T main_memory, Seq_T deleted_addresses,
+                                 uint32_t seg_0_len)
 {
-    assert(main_mem != NULL);
+    //assert(main_mem != NULL);
     uint32_t registers[NUM_REGISTERS];
 
     /* Initializes each register to be 0 */
@@ -487,10 +492,10 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
     uint32_t program_pointer = 0;
     uint32_t curr_instruction;
     int curr_opcode;
-    SArray_T seg_0_ptr = Mem_get_segment(main_mem, PROG_ADDRESS);
+    SArray_T seg_0_ptr = Mem_get_segment(main_memory, PROG_ADDRESS);
     // uint32_t curr_segment_address = 0;
     SArray_T curr_segment = seg_0_ptr;
-    Seq_T main_memory = main_mem->main_memory;
+    // Seq_T main_memory = main_mem->main_memory;
 
     // int num_mem_ops = 0;
     // int num_mem_cache_hits = 0;
@@ -577,15 +582,16 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
                 case HALT:
                     // printf("\nMemory operations: %d\n", num_mem_ops);
                     // printf("Memory operation cache hits: %d\n", num_mem_cache_hits);
-                    Mem_free_memory(&main_mem); 
+                    // Mem_free_memory(&main_mem); 
+                    Mem_free_memory(main_memory, deleted_addresses);
                     exit(EXIT_SUCCESS); 
                     break;
                 case ACTIVATE:
-                    map_segment(main_mem, rB_p, rC_val); 
+                    map_segment(main_memory, deleted_addresses, rB_p, rC_val); 
                     // *rB_p = Mem_create_segment(main_mem, *rC_p);
                     break;
                 case INACTIVATE:
-                    Mem_remove_segment(main_mem, rC_val);
+                    Mem_remove_segment(deleted_addresses, rC_val);
                     break;
                 case OUT:
                     putchar(rC_val);
@@ -594,8 +600,18 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
                     get_input(rC_p);
                     break;
                 case LOADP:
-                    load_program(main_mem, rB_p, rC_val, &program_pointer,
+                    load_program(main_memory, deleted_addresses, rB_p, rC_val, &program_pointer,
                                  &seg_0_len, &seg_0_ptr);
+                    
+                    // if (rB_val != PROG_ADDRESS) {
+                    //     seg_0_len = Mem_duplicate_segment(main_memory, deleted_addresses, 
+                    //                                                 rB_val, PROG_ADDRESS);
+                    //     seg_0_ptr = Mem_get_segment(main_memory, PROG_ADDRESS);
+                    //     // *curr_segment = *seg_0_ptr;
+                    //     // *curr_segment_address = PROG_ADDRESS;
+                    // }
+                    // program_pointer = rC_val;
+
                     break;
             }
         }
@@ -603,7 +619,8 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
 
     /* If the execution loop terminates, there was no halt instruction */
     fprintf(stderr, "Program terminated without a halt instruction.\n");
-    Mem_free_memory(&main_mem);
+    // Mem_free_memory(&main_mem);
+    Mem_free_memory(main_memory, deleted_addresses);
     exit(EXIT_FAILURE);
 }
 
@@ -617,9 +634,9 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
  *             int num_words - the number of instructions in the specified file
  * Returns:    none
  */
-static void read_instructions(Mem_T main_mem, char *filename, int num_words)
+static void read_instructions(Seq_T main_memory, char *filename, int num_words)
 {
-    assert(main_mem != NULL && filename != NULL);
+    //assert(main_mem != NULL && filename != NULL);
     FILE *fp = fopen(filename, "r"); 
     if (fp == NULL) {
         fprintf(stderr, "Could not open file.\n");
@@ -627,7 +644,7 @@ static void read_instructions(Mem_T main_mem, char *filename, int num_words)
     }
     uint32_t curr_word = 0;
     int curr_byte;
-    SArray_T segment_0 = Seq_get(main_mem->main_memory, PROG_ADDRESS);
+    SArray_T segment_0 = Seq_get(main_memory, PROG_ADDRESS);
 
     /* Read through the file 4 bytes at a time */
     for (int i = 0; i < num_words; i++) {
@@ -661,13 +678,29 @@ static void read_instructions(Mem_T main_mem, char *filename, int num_words)
 static void run_program(char *filename) 
 {
     assert(filename != NULL);
-    Mem_T main_mem = Mem_new();
+    // Mem_T main_mem = Mem_new();
+
+
+    // Mem_T mem = malloc(sizeof(*mem));
+    /* Ensure that malloc was successful */
+    // assert(mem != NULL);
+
+    /* Instantiate each struct element */
+    Seq_T main_memory = Seq_new(0);
+    Seq_T deleted_addresses = Seq_new(0);
+    // return mem; 
+
+
+    // Seq_T main_memory = main_mem->main_memory;
+    // Seq_T deleted_addresses = main_mem->deleted_addresses;
     struct stat buf;
     
     /* Ensure the file size can be determined using the stat function */
     if (stat(filename, &buf) != 0) {
         fprintf(stderr, "Could not determine file size.\n");
-        Mem_free_memory(&main_mem);
+        // Mem_free_memory(&main_mem);
+        Mem_free_memory(main_memory, deleted_addresses);
+
         exit(EXIT_FAILURE);
     }
 
@@ -676,15 +709,17 @@ static void run_program(char *filename)
     /* Ensure that file size does not contain truncated 32-bit words */
     if (num_bytes % 4 != 0) {
         fprintf(stderr, "Improper total file size.\n");
-        Mem_free_memory(&main_mem);
+        // Mem_free_memory(&main_mem);
+        Mem_free_memory(main_memory, deleted_addresses);
         exit(EXIT_FAILURE);
     }
 
     /* Create segment 0, then load/execute instructions */
-    Mem_create_segment(main_mem, num_bytes / 4); 
-    read_instructions(main_mem, filename, num_bytes / 4);
-    execute_instructions(main_mem, num_bytes / 4);
-    Mem_free_memory(&main_mem); 
+    Mem_create_segment(main_memory, deleted_addresses, num_bytes / 4); 
+    read_instructions(main_memory, filename, num_bytes / 4);
+    execute_instructions(main_memory, deleted_addresses, num_bytes / 4);
+    //Mem_free_memory(main_memory, ; 
+    Mem_free_memory(main_memory, deleted_addresses);
 }
 
 /* main
