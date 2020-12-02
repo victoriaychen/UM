@@ -132,6 +132,8 @@ static void load_program(Mem_T main_mem, uint32_t *rB_p, uint32_t rC_val,
     if (*rB_p != PROG_ADDRESS) {
         *seg_0_len = Mem_duplicate_segment(main_mem, *rB_p, PROG_ADDRESS);
         *seg_0_ptr = Mem_get_segment(main_mem, PROG_ADDRESS);
+        // *curr_segment = *seg_0_ptr;
+        // *curr_segment_address = PROG_ADDRESS;
     }
     *program_pointer = rC_val;
 }
@@ -232,6 +234,12 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
     uint32_t curr_instruction;
     int curr_opcode;
     UArray_T seg_0_ptr = Mem_get_segment(main_mem, PROG_ADDRESS);
+    // uint32_t curr_segment_address = 0;
+    UArray_T curr_segment = seg_0_ptr;
+    Seq_T main_memory = main_mem->main_memory;
+
+    // int num_mem_ops = 0;
+    // int num_mem_cache_hits = 0;
 
     /* Interating through segment 0 */
     while (program_pointer < seg_0_len) {
@@ -267,23 +275,36 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
             //               &program_pointer, &seg_0_len, &seg_0_ptr);
             uint32_t *rA_p = registers + rA;
             uint32_t *rB_p = registers + rB;
+            uint32_t rA_val = registers[rA];
             uint32_t rB_val = registers[rB];
             uint32_t rC_val = registers[rC];
 
-            UArray_T segment;
             switch (curr_opcode) {
                 case CMOV:
                     conditional_move(rA_p, rB_val, rC_val);
                     break;
                 case SLOAD:
                     //*rA_p = Mem_get_word(main_mem, *rB_p, *rC_p);
-                    segment = Seq_get(main_mem->main_memory, rB_val);
-                    *rA_p = *((uint32_t *)UArray_at(segment, rC_val));
+                    // num_mem_ops++;
+                    // if (curr_segment_address != rB_val) { 
+                    curr_segment = Seq_get(main_memory, rB_val);
+                        // curr_segment_address = rB_val;
+                    // } else {
+                    //     num_mem_cache_hits++;
+                    // }
+                    *rA_p = *((uint32_t *)UArray_at(curr_segment, rC_val));
                     break;
                 case SSTORE:
+                    // num_mem_ops++;
                     //Mem_update_word(main_mem, *rA_p, *rB_p, *rC_p);
-                    segment = Seq_get(main_mem->main_memory, registers[rA]);
-                    *((uint32_t *)UArray_at(segment, rB_val)) = rC_val;
+                    //if (curr_segment_address != rA_val) { 
+                    curr_segment = Seq_get(main_memory, rA_val);
+                        // curr_segment_address = rA_val;
+                    // } else {
+                    //     num_mem_cache_hits++; 
+                    // }
+                    // curr_segment = Seq_get(main_mem->main_memory, rA_val);
+                    *((uint32_t *)UArray_at(curr_segment, rB_val)) = rC_val;
                     // MEM_UPDATE_WORD(main_mem, *rA_p, *rB_p, *rC_p);
                     break;
                 case ADD:
@@ -299,6 +320,8 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
                     *rA_p = ~(rB_val & rC_val);
                     break;
                 case HALT:
+                    // printf("\nMemory operations: %d\n", num_mem_ops);
+                    // printf("Memory operation cache hits: %d\n", num_mem_cache_hits);
                     Mem_free_memory(&main_mem); 
                     exit(EXIT_SUCCESS); 
                     break;
@@ -316,7 +339,8 @@ static void execute_instructions(Mem_T main_mem, uint32_t seg_0_len)
                     get_input(registers + rC_val);
                     break;
                 case LOADP:
-                    load_program(main_mem, rB_p, rC_val, &program_pointer, &seg_0_len, &seg_0_ptr);
+                    load_program(main_mem, rB_p, rC_val, &program_pointer,
+                                 &seg_0_len, &seg_0_ptr);
                     break;
             }
         }
