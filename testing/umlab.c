@@ -576,14 +576,15 @@ void build_performance_test(Seq_T stream)
 void build_memory_test(Seq_T stream)
 {
         // Load segment to store 4 addresses
-        int num_segments = 1000;
+        int num_segments = 10;
+        int seg_length = 1000;
         append(stream, loadval(r1, num_segments));
         // append(stream, loadval(r2, 0));
         append(stream, map_segment(r2, r1));
 
+        append(stream, loadval(r3, seg_length));
         for (int i = 0; i < num_segments; i++) {
                 append(stream, loadval(r0, i));
-                append(stream, loadval(r3, 1000 * i + 10));
                 append(stream, map_segment(r4, r3));
                 append(stream, segmented_store(r2, r0, r4));
         }
@@ -593,7 +594,52 @@ void build_memory_test(Seq_T stream)
         append(stream, loadval(r7, 9));
 
         // Store 9 in every position of the segment
-        for (int i = 0; i < 1000 * (num_segments - 1) + 10; i++) {
+        for (int i = 0; i < seg_length; i++) {
+                append(stream, loadval(r6, i));
+                append(stream, segmented_store(r5, r6, r7));
+        }
+        
+        append(stream, segmented_load(r0, r5, r6));
+        output_digit(stream, r0, r1); // should print 9
+        append(stream, halt());
+}
+
+void build_add_and_remove_test(Seq_T stream)
+{
+        int num_segments = 100000;
+        int seg_length = 1000;
+        append(stream, loadval(r1, num_segments));
+        // append(stream, loadval(r2, 0));
+        append(stream, map_segment(r2, r1));
+
+        append(stream, loadval(r3, seg_length));
+        for (int i = 0; i < num_segments; i++) {
+                append(stream, loadval(r0, i));
+                append(stream, map_segment(r4, r3));
+                append(stream, segmented_store(r2, r0, r4));
+        }
+
+        // Unmap all segments
+        for (int i = 0; i < num_segments; i++) {
+                append(stream, loadval(r0, i));
+                append(stream, segmented_load(r1, r2, r0));
+
+                // append(stream, loadval(r3, 1000 * i + 10));
+                append(stream, unmap_segment(r1));
+        }
+
+        for (int i = 0; i < num_segments; i++) {
+                append(stream, loadval(r0, i));
+                append(stream, map_segment(r4, r3));
+                append(stream, segmented_store(r2, r0, r4));
+        }
+
+        // Get address of last segment
+        append(stream, segmented_load(r5, r2, r0));
+        append(stream, loadval(r7, 9));
+
+        // Store 9 in every position of the segment
+        for (int i = 0; i < seg_length; i++) {
                 append(stream, loadval(r6, i));
                 append(stream, segmented_store(r5, r6, r7));
         }

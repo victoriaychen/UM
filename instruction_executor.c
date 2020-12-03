@@ -321,6 +321,8 @@ static Mem_Address Mem_create_segment(Mem_T mem, int seg_length)
         int new_length = prev_length + seg_length;
         if (new_length > mem->capacity) {
             expand_main_memory(mem, new_length);
+        } else {
+            mem->length = new_length;
         }
         return add_to_seg_info(mem, prev_length, seg_length);
     } else {
@@ -336,6 +338,8 @@ static Mem_Address Mem_create_segment(Mem_T mem, int seg_length)
             int new_length = prev_length + seg_length;
             if (new_length > mem->capacity) {
                 expand_main_memory(mem, new_length);
+            } else {
+                mem->length = new_length; 
             }
             return add_to_seg_info(mem, prev_length, seg_length);
         }
@@ -658,6 +662,8 @@ static void execute_instructions(Mem_T mem, uint32_t seg_0_len)
     // SArray_T curr_segment = seg_0_ptr;
     // Seq_T main_memory = main_mem->main_memory;
 
+    // printf("Initial - Main mem length: %d\n", mem->length);
+    // printf("Initial - Main mem capacity: %d\n", mem->capacity);
     // int num_mem_ops = 0;
     // int num_mem_cache_hits = 0;
 
@@ -751,10 +757,14 @@ static void execute_instructions(Mem_T mem, uint32_t seg_0_len)
                     exit(EXIT_SUCCESS); 
                     break;
                 case ACTIVATE:
+                    // printf("Map - Main mem length: %d\n", mem->length);
+                    // printf("Map - Main mem capacity: %d\n", mem->capacity);
                     map_segment(mem, rB_p, rC_val); 
                     // *rB_p = Mem_create_segment(main_mem, *rC_p);
                     break;
                 case INACTIVATE:
+                    // printf("Unmap - Main mem length: %d\n", mem->length);
+                    // printf("Unmap - Main mem capacity: %d\n", mem->capacity);
                     Mem_remove_segment(mem->deleted_addresses, rC_val);
                     break;
                 case OUT:
