@@ -573,3 +573,33 @@ void build_performance_test(Seq_T stream)
 //         output_digit(stream, r2, r7); // should print 1
 // }
 
+void build_memory_test(Seq_T stream)
+{
+        // Load segment to store 4 addresses
+        int num_segments = 1000;
+        append(stream, loadval(r1, num_segments));
+        // append(stream, loadval(r2, 0));
+        append(stream, map_segment(r2, r1));
+
+        for (int i = 0; i < num_segments; i++) {
+                append(stream, loadval(r0, i));
+                append(stream, loadval(r3, 1000 * i + 10));
+                append(stream, map_segment(r4, r3));
+                append(stream, segmented_store(r2, r0, r4));
+        }
+
+        // Get address of last segment
+        append(stream, segmented_load(r5, r2, r0));
+        append(stream, loadval(r7, 9));
+
+        // Store 9 in every position of the segment
+        for (int i = 0; i < 1000 * (num_segments - 1) + 10; i++) {
+                append(stream, loadval(r6, i));
+                append(stream, segmented_store(r5, r6, r7));
+        }
+        
+        append(stream, segmented_load(r0, r5, r6));
+        output_digit(stream, r0, r1); // should print 9
+        append(stream, halt());
+}
+

@@ -32,6 +32,7 @@ extern void build_load_program_test(Seq_T instructions);
 extern void build_load_seg_0_test(Seq_T instructions);
 extern void build_map_empty_seg_test(Seq_T instructions);
 extern void build_performance_test(Seq_T instructions);
+extern void build_memory_test(Seq_T instructions);
 //extern void build_no_halt_test(Seq_T instructions);
 // extern void build_arithmetic_test(Seq_T instructions);
 
@@ -65,8 +66,9 @@ static struct test_info {
         { "load-program",  NULL,         "b",               build_load_program_test },
         { "map-and-store", NULL,         "S",               build_map_and_store_test },
         { "load-seg-0",    NULL,         "ab",              build_load_seg_0_test },
-        { "map-empty-seg", NULL,          "",               build_map_empty_seg_test },
-        { "performance",   NULL,          "",               build_performance_test },
+        { "map-empty-seg", NULL,         "",                build_map_empty_seg_test },
+        { "performance",   NULL,         "",                build_performance_test },
+        { "memory",        NULL,         "9",               build_memory_test },
         //{ "no-halt",       NULL,         "11",              build_no_halt_test },
         // { "arithmetic",   NULL, "253",        build_arithmetic_test },
         

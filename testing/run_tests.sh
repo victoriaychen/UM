@@ -7,9 +7,12 @@ make writetests > /dev/null
 testFiles=$(ls $2 | grep '\.um$')
 
 for testFile in $testFiles ; do
+    # echo $testFile
     testName=$(echo $testFile | sed -E 's/(.*).um/\1/')
     testOutput="None"
     refOutput="None"
+    # testOutput=$(../um $testFile < "${testName}.0")
+    # refOutput=$(um $testFile < "${testName}.0")
     if [ -f "${testName}.1" ] ; then
         actualOutput=$(cat ${testName}.1)
         if [ -f "${testName}.0" ] ; then
@@ -32,6 +35,7 @@ for testFile in $testFiles ; do
             echo "  Reference output: ${refOutput}"
         fi
     else
+        # echo $testName
         if [ -f "${testName}.0" ] ; then
             testOutput=$(../um $testFile < "${testName}.0")
             refOutput=$(um $testFile < "${testName}.0")
