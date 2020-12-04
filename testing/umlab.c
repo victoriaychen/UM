@@ -649,3 +649,70 @@ void build_add_and_remove_test(Seq_T stream)
         append(stream, halt());
 }
 
+void build_cmov_speed_test(Seq_T stream)
+{
+        append(stream, loadval(r1, 1));
+        for (int i = 0; i < 1000000; i++) {
+                if (i % 2 == 0) {
+                        append(stream, conditional_move(r6, r7, r1));
+                } else {
+                        append(stream, conditional_move(r4, r5, r0));
+                }
+        }
+        append(stream, halt());
+}
+
+void build_sload_speed_test(Seq_T stream)
+{
+        for (int i = 0; i < 1000000; i++) {
+              append(stream, loadval(r0, i));
+              append(stream, segmented_load(r2, r1, r0));
+        }
+        append(stream, halt());
+}
+
+void build_sstore_speed_test(Seq_T stream)
+{
+        for (int i = 0; i < 1000000; i++) {
+              append(stream, loadval(r0, i));
+              append(stream, segmented_store(r1, r0, r2));
+        }
+        append(stream, halt());
+}
+
+void build_map_speed_test(Seq_T stream)
+{
+        append(stream, loadval(r0, 10));
+        for (int i = 0; i < 1000000; i++) {
+              append(stream, map_segment(r1, r0));
+        }
+        append(stream, halt());
+}
+
+void build_map_and_unmap_speed_test(Seq_T stream)
+{
+        append(stream, loadval(r0, 10));
+        for (int i = 0; i < 1000000; i++) {
+              append(stream, map_segment(r1, r0));
+              append(stream, unmap_segment(r1));
+        }
+        append(stream, halt());
+}
+
+void build_output_speed_test(Seq_T stream)
+{
+        append(stream, loadval(r0, 97));
+        for (int i = 0; i < 1000000; i++) {
+              append(stream, output(r0));
+        }
+        append(stream, halt());
+}
+
+void build_load_program_speed_test(Seq_T stream)
+{
+        for (int i = 0; i < 1000000; i++) {
+              append(stream, loadval(r0, i * 2 + 2));
+              append(stream, load_program(r1, r0));
+        }
+        append(stream, halt());
+}

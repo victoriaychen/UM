@@ -23,8 +23,8 @@
 #include <stdint.h>
 #include <sys/stat.h>
 #include "assert.h"
-#include "bitpack.h"
-#include "seq.h"
+// #include "bitpack.h"
+// #include "seq.h"
 // #include "memory.h"
 //#include "unpacker.h"
 
