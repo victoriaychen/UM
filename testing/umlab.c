@@ -606,7 +606,7 @@ void build_memory_test(Seq_T stream)
 
 void build_add_and_remove_test(Seq_T stream)
 {
-        int num_segments = 100000;
+        int num_segments = 10000;
         int seg_length = 1000;
         append(stream, loadval(r1, num_segments));
         // append(stream, loadval(r2, 0));

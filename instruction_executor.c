@@ -329,7 +329,7 @@ static Mem_Address Mem_create_segment(Mem_T mem, int seg_length)
         Mem_Address address = (uintptr_t)Seq_get(deleted_addresses,
                                                  deleted_addresses_length - 1);
         Segment_Info *seg_info = mem->seg_info;
-        if (seg_info[address].width <= seg_length) {
+        if (seg_info[address].width >= seg_length) {
             seg_info[address].width = seg_length;
             Seq_remhi(deleted_addresses);
             return address;
@@ -353,7 +353,7 @@ static void replace_seg_0(Mem_T mem, int length_of_seg_to_dup)
     Segment_Info *seg_info = mem->seg_info;
     // int deleted_addresses_length = Seq_length(deleted_addresses);
     Mem_remove_segment(deleted_addresses, PROG_ADDRESS);
-    if (seg_info[PROG_ADDRESS].width <= length_of_seg_to_dup) {
+    if (seg_info[PROG_ADDRESS].width >= length_of_seg_to_dup) {
         seg_info[PROG_ADDRESS].width = length_of_seg_to_dup;
         Seq_remhi(deleted_addresses);
     } else {
@@ -361,6 +361,8 @@ static void replace_seg_0(Mem_T mem, int length_of_seg_to_dup)
         int new_length = prev_length + length_of_seg_to_dup;
         if (new_length > mem->capacity) {
             expand_main_memory(mem, new_length);
+        } else {
+            mem->length = new_length;
         }
         seg_info[PROG_ADDRESS].starting_index = prev_length;
         seg_info[PROG_ADDRESS].width = length_of_seg_to_dup;
@@ -666,7 +668,9 @@ static void execute_instructions(Mem_T mem, uint32_t seg_0_len)
     // printf("Initial - Main mem capacity: %d\n", mem->capacity);
     // int num_mem_ops = 0;
     // int num_mem_cache_hits = 0;
-
+    // printf("Initial - Program pointer: %d\n", program_pointer);
+    // printf("Initial - Seg 0 length: %d\n", seg_0_len);
+    
     /* Interating through segment 0 */
     while (program_pointer < seg_0_len) {
         // printf("Main mem length: %d\n", mem->length);
@@ -774,9 +778,27 @@ static void execute_instructions(Mem_T mem, uint32_t seg_0_len)
                     get_input(rC_p);
                     break;
                 case LOADP:
+                    if (rB_val != PROG_ADDRESS) {
+                        printf("Before LP - Address of segment to duplicate: %d\n", rB_val);
+                        printf("Before LP - Starting Index of Seg 0 (from seg_info): %d\n",
+                               mem->seg_info[PROG_ADDRESS].starting_index);
+                        printf("Before LP - Segment 0 Length (variable): %d\n", seg_0_len);
+                        printf("Before LP - Segment 0 Length (from seg_info): %d\n",
+                               mem->seg_info[PROG_ADDRESS].width);
+                        
+                    }
+                    // printf("Before LP - Length of segment 2: %d\n", mem->seg_info[2].width);
                     load_program(mem, rB_val, rC_val, &program_pointer,
                                  &seg_0_len);
-                    
+                    if (rB_val != PROG_ADDRESS) {
+                        printf("After LP - Program pointer: %d\n", program_pointer);
+                        printf("After LP - Starting Index of Seg 0 (from seg_info): %d\n",
+                               mem->seg_info[PROG_ADDRESS].starting_index);
+                        printf("After LP - Segment 0 Length (variable): %d\n", seg_0_len);
+                        printf("After LP - Segment 0 Length (from seg_info): %d\n",
+                               mem->seg_info[PROG_ADDRESS].width);
+                        
+                    }
                     // if (rB_val != PROG_ADDRESS) {
                     //     seg_0_len = Mem_duplicate_segment(main_memory, deleted_addresses, 
                     //                                                 rB_val, PROG_ADDRESS);
@@ -790,7 +812,8 @@ static void execute_instructions(Mem_T mem, uint32_t seg_0_len)
             }
         }
     }
-
+    printf("End - Program pointer: %d\n", program_pointer);
+    printf("End - Seg 0 length: %d\n", seg_0_len);
     /* If the execution loop terminates, there was no halt instruction */
     fprintf(stderr, "Program terminated without a halt instruction.\n");
     // Mem_free_memory(&main_mem);
