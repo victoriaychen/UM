@@ -20,5 +20,5 @@ writetests: umlabwrite.o umlab.o
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(EXECS)  *.o
+	rm -f $(EXECS) *.o *.um *.1 *.0
 

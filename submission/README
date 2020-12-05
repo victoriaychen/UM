@@ -1,0 +1,162 @@
+/******************************************************************************
+ *
+ *                                 README
+ *
+ *     Assignment: profiling
+ *     Authors:    Ryan Beckwith (rbeckw02) and Victoria Chen (vchen05)
+ *     Date:       12/4/2020
+ *
+ *****************************************************************************/
+
+Acknowledgements:
+
+    12/3 - Ann Marie answered our question about performance targets. 
+    We also used Piazza to answer our questions. 
+
+Assembly analysis:
+
+    Identification of most expensive procedure:
+        
+            Initially, we examined the "self" tab of the kcachegrind visual
+        output, but were unable to effectively determine the most expensive
+        procedure in our UM. This was largely due to the fact that over 97% of
+        program execution time was spent in the main function - we suspect that
+        the -O2 compiler optimization flag is responsible for inlining many
+        of the functions we wrote directly into the main function. As such, we
+        were unable to distinguish individual functions that were causing
+        slowdowns. We then tried examining the kcachegrind output for the
+        unoptimized version of our UM (compiled without -O2): this revealed
+        that the most time consuming operations were typically those involved
+        with memory access. However, we still could not clearly determine which
+        function was the most time consuming on a per-call basis, so we decided
+        to investigate further using /usr/bin/time and some simple performace
+        tests.
+        
+            To identify our program hot spot, we wrote a speed test for each of
+        our operations. In each speed test, we attempted to call an operation
+        1,000,000 times. However, due to the difficulty involved with
+        individually testing certain instructions like Unmap Segment, certain
+        adjustments were made where necessary. Most notably, the test for Unmap
+        Segment had equal numbers of Map and Unmap Segment instructions, and
+        the test for Load Program only loaded from segment 0, which sped up the
+        procedure substantially. Additionally, certain operations that could be
+        implied as fast (arithmetic, load value) were omitted from
+        consideration. The results are summarized in the below table:
+     
+        Table 1: Speed Test Results
+        ---------------------------------------------
+        |       Operation Test             |  Time  |
+        ---------------------------------------------
+        |     Conditional Move             |  0.05s |
+        ---------------------------------------------
+        |       Segment Load               |  0.11s |
+        ---------------------------------------------
+        |       Segment Store              |  0.11s |
+        ---------------------------------------------
+        |    Map Segment (length 10)       |  0.16s |
+        ---------------------------------------------
+        | Map and Unmap Segment (length 10)|  0.17s |
+        ---------------------------------------------
+        |          Output                  |  0.06s |
+        ---------------------------------------------
+        |       Load Program               |  0.11s |
+        ---------------------------------------------
+
+            As evidenced by the results in Table 1, the most time consuming
+        operations for our UM were the Map and Unmap Segment operations. Both
+        operations were similarly slow, so we could not determine which
+        operation was less efficient. However, we reasoned that since both of
+        these operations were clearly the slowest of the tested operations,
+        then the Load Program instruction would have to be the slowest
+        operation. This is not reflected in the table results for the
+        previously stated reason that it was nearly impossible to test the
+        Load Program instruction individually without only loading from
+        segment 0. However, since our implementation of the Load Program
+        instruction utilized both the Map and Unmap Segment operations, we
+        reasoned that a Load Program instruction that does not map from segment
+        0 must be the slowest operation, and hence the most expensive procedure
+        in our UM. As such, we investigated the relevant assembly code that
+        corresponded with this specific case of the Load Program instruction.
+
+    Potential improvements to assembly code:
+
+            Before we begin our analysis of the relevant assembly code for the
+        Load Program instruction, we will briefly summarize our function
+        structure for this operation. We have a function, load_program, which
+        is called whenever an opcode of 12 is encountered. We check to see if
+        the desired segment to replace segment 0 is segment 0 - if it is, we
+        simply set the program pointer to the desired position and return. If
+        the desired segment is not segment 0, we unmap segment 0, map a new
+        segment, copy all words from the desired replacement segment into the
+        new segment, and update the program pointer/length of segment 0. This
+        operation involves calling several helper functions that dynamically
+        expand C arrays representing main memory, segment metadata, and a stack
+        of deleted addresses. To find potential inefficiencies, we primarily
+        investigated each of the relevant expand functions, as well as the
+        functions involved with unmapping and mapping segments.
+
+            One potential inefficiency may be caused by our expand functions. 
+        In our expand functions, we have to dereference values in two separate
+        arrays at addresses that are not close to each other in memory (since
+        one address was just returned by malloc and the other address
+        corresponds with a previously heap-allocated array). This potential
+        inefficiency is represented in assembly code as follows:
+        
+            mov    (%rdi,%rax,4),%edx
+            mov    %edx,0x0(%rbp,%rax,4)
+
+        Thus, expanding and copying over array values does not solely utilize 
+        registers, which is likely a slow operation. However, we reason that
+        array expansion would be impossible to achieve due to the limited
+        number of registers available - as such, this inefficiency is likely
+        unavoidable.
+
+            Other potential inefficiencies can be found in places where we need
+        to access data members of our Mem_T struct (the struct representing
+        main_memory). One example of this potential inefficiency is represented
+        in our expand_main_memory function as follows:
+        
+            mov    0x1c(%rdi),%eax
+        
+        In most of our functions, we pass in a pointer to this Mem_T struct
+        as a parameter. Thus, every time we need to access data members from
+        this Mem_T struct, we are forced to deference this pointer and store
+        the values in local varibles. Since this operation occurs multiple
+        times across different functions related to the Load Program
+        instruction, there is potentially a slowdown related to unnecessary
+        dereferencing of the Mem_T pointer. A potential fix could be to pass
+        the members of the Mem_T struct directly in certain cases, which would
+        place these values directly into parameter registers, thus avoiding
+        unnecessary dereferencing.
+
+            More broadly, a third potential slowdown could be attributed to the
+        surprising lack of inlining for certain functions. Namely, each of the
+        expand functions, as well as the function responsible for unmapping
+        segments (Mem_remove_segment), were not replaced with their inline
+        equivalents, unlike every other function in our memory interface. We
+        speculate that the compiler potentially encountered a pointer aliasing
+        issue that it could not resolve directly, which may have forced the
+        compiler to keep the functions in the final assembly source code. This
+        lack of inlining could potentially slow down our UM, because there is a
+        non-trivial overhead associated with pushing and popping from the call
+        stack. To fix this issue, we could have potentially inlined these
+        functions manually, perhaps with a function-like macro instead of a
+        true function.
+
+            In summary, there were minor potential inefficiencies that we were
+        clearly able to identify in our UM assembly source code. For the most
+        part, however, registers were used wherever possible, and function
+        inlining occurred for the vast majority of our operations. As such, we
+        are confident that the issues identified here have a minor impact on
+        the overall performance of our UM. In any case, the analysis process
+        unveiled smaller details that we may have overlooked in our design
+        improvement process for this assignment.
+
+Hours spent analyzing the problems posed in the assignment:
+
+    We spent approximately 3 hours analyzing the problems posed in this
+    assignment.
+
+Hours spent solving the problems after our analysis:
+
+    We spent approximately 16 hours solving the problems after our analysis.

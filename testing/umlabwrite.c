@@ -34,6 +34,13 @@ extern void build_map_empty_seg_test(Seq_T instructions);
 extern void build_performance_test(Seq_T instructions);
 extern void build_memory_test(Seq_T instructions);
 extern void build_add_and_remove_test(Seq_T instructions);
+extern void build_cmov_speed_test(Seq_T instructions);
+extern void build_sload_speed_test(Seq_T instructions);
+extern void build_sstore_speed_test(Seq_T instructions);
+extern void build_map_speed_test(Seq_T instructions);
+extern void build_map_and_unmap_speed_test(Seq_T instructions);
+extern void build_output_speed_test(Seq_T instructions);
+extern void build_load_program_speed_test(Seq_T instructions);
 //extern void build_no_halt_test(Seq_T instructions);
 // extern void build_arithmetic_test(Seq_T instructions);
 
@@ -46,31 +53,38 @@ static struct test_info {
         /* writes instructions into sequence */
         void (*build_test)(Seq_T stream);
 } tests[] = {
-        { "halt",           NULL,         "",                build_halt_test },
-        { "output",         NULL,         "",                build_output_test },
-        { "load-value",     NULL,         "abcdefg",         build_load_value_test },
-        { "halt-verbose",   NULL,         "",                build_verbose_halt_test },
-        { "add",            NULL,         "5",               build_add_test },
-        { "add-mod",        NULL,         "0",               build_add_mod_test },
-        { "mul",            NULL,         "6",               build_mul_test },
-        { "mul-mod",        NULL,         "0",               build_mul_mod_test },
-        { "div",            NULL,         "011",             build_div_test },
-        { "nand",           NULL,         "03",              build_nand_test },
-        { "print-six",      NULL,         "6",               build_print_six_test },
-        { "cmov",           NULL,         "abbb",            build_cmov_test },
-        { "sload",          NULL,         "ST",              build_sload_test },
-        { "sstore",         NULL,         "S",               build_sstore_test },
-        { "map-segment",    NULL,         "100002",          build_map_segment_test },
-        { "unmap-segment",  NULL,         "",                build_unmap_segment_test },
-        { "input",          "abcde\nabc", "abcde\nabc",      build_input_test },
-        { "input-eof",      NULL,         "0",               build_input_eof_test },
-        { "load-program",   NULL,         "b",               build_load_program_test },
-        { "map-and-store",  NULL,         "S",               build_map_and_store_test },
-        { "load-seg-0",     NULL,         "ab",              build_load_seg_0_test },
-        { "map-empty-seg",  NULL,         "",                build_map_empty_seg_test },
-        { "performance",    NULL,         "",                build_performance_test },
-        { "memory",         NULL,         "9",               build_memory_test },
-        { "add-and-remove", NULL,         "9",               build_add_and_remove_test },
+        { "halt",                NULL,         "",                build_halt_test },
+        { "output",              NULL,         "",                build_output_test },
+        { "load-value",          NULL,         "abcdefg",         build_load_value_test },
+        { "halt-verbose",        NULL,         "",                build_verbose_halt_test },
+        { "add",                 NULL,         "5",               build_add_test },
+        { "add-mod",             NULL,         "0",               build_add_mod_test },
+        { "mul",                 NULL,         "6",               build_mul_test },
+        { "mul-mod",             NULL,         "0",               build_mul_mod_test },
+        { "div",                 NULL,         "011",             build_div_test },
+        { "nand",                NULL,         "03",              build_nand_test },
+        { "print-six",           NULL,         "6",               build_print_six_test },
+        { "cmov",                NULL,         "abbb",            build_cmov_test },
+        { "sload",               NULL,         "ST",              build_sload_test },
+        { "sstore",              NULL,         "S",               build_sstore_test },
+        { "map-segment",         NULL,         "100002",          build_map_segment_test },
+        { "unmap-segment",       NULL,         "",                build_unmap_segment_test },
+        { "input",               "abcde\nabc", "abcde\nabc",      build_input_test },
+        { "input-eof",           NULL,         "0",               build_input_eof_test },
+        { "load-program",        NULL,         "b",               build_load_program_test },
+        { "map-and-store",       NULL,         "S",               build_map_and_store_test },
+        { "load-seg-0",          NULL,         "ab",              build_load_seg_0_test },
+        { "map-empty-seg",       NULL,         "",                build_map_empty_seg_test },
+        { "performance",         NULL,         "",                build_performance_test },
+        { "memory",              NULL,         "9",               build_memory_test },
+        { "add-and-remove",      NULL,         "9",               build_add_and_remove_test },
+        { "cmov-speed",          NULL,         "",                build_cmov_speed_test },
+        { "sload-speed",         NULL,         "",                build_sload_speed_test },
+        { "sstore-speed",        NULL,         "",                build_sstore_speed_test },
+        { "map-speed",           NULL,         "",                build_map_speed_test },
+        { "map-and-unmap-speed", NULL,         "",                build_map_speed_test },
+        // { "output-speed",        NULL,         "",                build_output_speed_test },
+        { "load-program-speed",  NULL,         "",                build_load_program_speed_test },
         //{ "no-halt",       NULL,         "11",              build_no_halt_test },
         // { "arithmetic",   NULL, "253",        build_arithmetic_test },
         
