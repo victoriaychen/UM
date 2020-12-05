@@ -83,7 +83,11 @@ static struct test_info {
         { "sstore-speed",        NULL,         "",                build_sstore_speed_test },
         { "map-speed",           NULL,         "",                build_map_speed_test },
         { "map-and-unmap-speed", NULL,         "",                build_map_speed_test },
+<<<<<<< HEAD
         // { "output-speed",        NULL,         "",                build_output_speed_test },
+=======
+        { "output-speed",        NULL,         "",                build_output_speed_test },
+>>>>>>> 1bda0b415a5badbe3ec49b88ad1760710fcb6c9b
         { "load-program-speed",  NULL,         "",                build_load_program_speed_test },
         //{ "no-halt",       NULL,         "11",              build_no_halt_test },
         // { "arithmetic",   NULL, "253",        build_arithmetic_test },
